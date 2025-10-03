@@ -1,18 +1,19 @@
 import { Colors } from "@/constants/customTheme";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import React, { useState } from "react";
+import { useSQLiteContext } from "expo-sqlite";
+import React, { useCallback, useState } from "react";
 import {
   FlatList,
   StyleSheet,
   Text,
   TouchableOpacity,
-  View,
+  View
 } from "react-native";
 import { Dropdown } from "react-native-element-dropdown";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-// Pick theme manually (switch light/dark here)
+// Pick theme manually
 const theme = Colors.light;
 
 const cards = [
@@ -25,17 +26,15 @@ const cards = [
   { id: "7", name: "Send Email", icon: "mail-outline" },
   { id: "8", name: "War Room", icon: "shield-checkmark-outline" },
   { id: "9", name: "Vote Stats", icon: "bar-chart-outline" },
+  { id: "10", name: "test", icon: "bar-chart-outline" },
 ];
 
-// Helper to add a blank item if list has odd count
+// Add blank element if odd
 const formatData = (data: any[], numColumns: number) => {
   const numberOfFullRows = Math.floor(data.length / numColumns);
   let numberOfElementsLastRow = data.length - numberOfFullRows * numColumns;
 
-  while (
-    numberOfElementsLastRow !== numColumns &&
-    numberOfElementsLastRow !== 0
-  ) {
+  while (numberOfElementsLastRow !== numColumns && numberOfElementsLastRow !== 0) {
     data.push({ id: `blank-${data.length}`, empty: true });
     numberOfElementsLastRow++;
   }
@@ -48,55 +47,78 @@ const data = [
   { label: "Center 2", value: "2" },
   { label: "Center 3", value: "3" },
 ];
+
 export default function DashboardScreen() {
   const router = useRouter();
-  const [selectedValue, setSelectedValue] = useState(null);
+  const db = useSQLiteContext();
+  const [selectedValue, setSelectedValue] = useState<string | null>(null);
+  const [voterList, setVoterList] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  // Fetch voter_list
+  const fetchVoters = useCallback(async () => {
+    try {
+      setLoading(true);
+      const data = await db.getAllAsync("SELECT * FROM voter_list");
+      setVoterList(Array.isArray(data) ? data : []);
+    } catch (err) {
+      console.error("Failed to fetch voters:", err);
+      setVoterList([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [db]);
 
   const renderCard = ({ item }: any) => {
-    if (item.empty) {
-      // Empty placeholder keeps layout balanced
-      return <View className="flex-1 m-2 p-4" style={{ aspectRatio: 1 }} />;
-    }
+    if (item.empty) return <View className="flex-1 m-2 p-4" style={{ aspectRatio: 1 }} />;
 
     return (
       <TouchableOpacity
-        className="flex-1 m-2 rounded-lg -md justify-center items-center p-4"
+        className="flex-1 m-2 rounded-lg justify-center items-center p-4"
         style={{ aspectRatio: 1, backgroundColor: theme.card }}
         onPress={() => {
-          if (item.name === "Voter List") {
-            router.push("/voter-list"); // navigate to voter list screen
+          // Pass voterList as param to all child screens
+          const params = { voterList };
+          switch (item.name) {
+            case "Voter List":
+              router.push({
+                pathname: "/voter-list",
+                params: { voterList: JSON.stringify(voterList) }, // <-- stringify
+              });
+              break;
+            case "Votes":
+              router.push({ pathname: "/votes-screen", params });
+              break;
+            case "Promotional Material":
+              router.push({ pathname: "/promotional-material", params });
+              break;
+            case "Phone Diary":
+              router.push({ pathname: "/phone-diary", params });
+              break;
+            case "Chat":
+              router.push({ pathname: "/chat-screen", params });
+              break;
+            case "Send Email":
+              router.push({ pathname: "/send-email-screen", params });
+              break;
+            case "Booth System":
+              router.push({ pathname: "/booth-system-screen", params });
+              break;
+            case "War Room":
+              router.push({ pathname: "/war-room-screen", params });
+              break;
+            case "Vote Stats":
+              router.push({ pathname: "/votes-stats-screen", params });
+              break;
+            case "test":
+              router.push({ pathname: "/test-screen", params });
+              break;
           }
-          else if (item.name === "Votes") {
-            router.push("/votes-screen"); // navigate to voter list screen
-          }
-          else if (item.name === "Promotional Material") {
-            router.push("/promotional-material"); // navigate to voter list screen
-          }
-          else if (item.name === "Phone Diary") {
-            router.push("/phone-diary"); // navigate to voter list screen
-          }
-          else if (item.name === "Chat") {
-            router.push("/chat-screen"); // navigate to voter list screen
-          }
-          else if (item.name === "Send Email") {
-            router.push("/send-email-screen"); // navigate to voter list screen
-          }
-          else if (item.name === "Booth System") {
-            router.push("/booth-system-screen"); // navigate to voter list screen
-          }
-          else if (item.name === "War Room") {
-            router.push("/war-room-screen"); // navigate to voter list screen
-          }
-          else if (item.name === "Vote Stats") {
-            router.push("/votes-stats-screen"); // navigate to voter list screen
-          }
-         
         }}
       >
-        {/* Light circle + Blue icon */}
         <View
           style={{
-            backgroundColor: theme.iconLight, // new lighter background
+            backgroundColor: theme.iconLight,
             padding: 16,
             borderRadius: 9999,
             marginBottom: 8,
@@ -104,10 +126,7 @@ export default function DashboardScreen() {
         >
           <Ionicons name={item.icon} size={32} color={theme.primaryBlue} />
         </View>
-
-        <Text
-          style={{ color: theme.text, textAlign: "center", fontWeight: "500" }}
-        >
+        <Text style={{ color: theme.text, textAlign: "center", fontWeight: "500" }}>
           {item.name}
         </Text>
       </TouchableOpacity>
@@ -143,7 +162,6 @@ export default function DashboardScreen() {
               placeholder="Select center"
               value={selectedValue}
               onChange={(item) => setSelectedValue(item.value)}
-              // Make sure dropdown appears above other elements
               dropdownPosition="auto"
               maxHeight={150}
             />
@@ -154,9 +172,22 @@ export default function DashboardScreen() {
             style={{ flexDirection: "row", alignItems: "center", gap: 4 }}
           >
             <Ionicons name="log-out-outline" size={20} color={theme.danger} />
-            {/* <Text style={{ color: theme.danger, fontWeight: "500" }}>Logout</Text> */}
           </TouchableOpacity>
         </View>
+
+        {/* Fetch Button */}
+        {/* <View className="p-4">
+          <TouchableOpacity
+            onPress={fetchVoters}
+            className="bg-blue-500 px-4 py-2 rounded-xl flex-row items-center justify-center"
+          >
+            {loading ? (
+              <ActivityIndicator size="small" color="#fff" />
+            ) : (
+              <Text className="text-white font-semibold">Fetch Voter List</Text>
+            )}
+          </TouchableOpacity>
+        </View> */}
 
         {/* Cards Grid */}
         <FlatList
@@ -170,10 +201,8 @@ export default function DashboardScreen() {
     </SafeAreaView>
   );
 }
+
 const styles = StyleSheet.create({
-  container: {
-    padding: 10,
-  },
   dropdown: {
     height: 50,
     borderColor: "white",
@@ -181,10 +210,6 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     paddingHorizontal: 8,
   },
-  placeholderStyle: {
-    fontSize: 16,
-  },
-  selectedTextStyle: {
-    fontSize: 16,
-  },
+  placeholderStyle: { fontSize: 16 },
+  selectedTextStyle: { fontSize: 16 },
 });

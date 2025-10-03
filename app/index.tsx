@@ -1,8 +1,8 @@
+import { useUsers } from "@/context/UserContext";
 import { MaterialIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
-  Alert,
   KeyboardAvoidingView,
   Platform,
   Text,
@@ -12,17 +12,34 @@ import {
 } from "react-native";
 
 export default function LoginScreen() {
-  const [mobile, setMobile] = useState("");
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [otp, setOtp] = useState(false);
+  const [error, setError] = useState(""); // ✅ Error message
   const router = useRouter();
 
+  const { users } = useUsers(); // Get users from context
+
   const handleLogin = () => {
-    if (mobile.length !== 10) {
-      Alert.alert("Error", "Please enter a valid 10-digit mobile number");
+    setError(""); // Reset error on each attempt
+
+    if (!username || !password) {
+      setError("Please enter both username and password");
       return;
     }
-    router.replace("/(tabs)");
+
+    // Check credentials
+    const user = users.find(
+      (u) => u.username === username && u.password === password
+    );
+
+    if (user) {
+      // Login success
+      router.replace("/(tabs)");
+    } else {
+      // Invalid credentials
+      setError("Invalid username or password");
+    }
   };
 
   return (
@@ -38,27 +55,23 @@ export default function LoginScreen() {
           </Text>
           <Text className="text-gray-600 mt-2">
             Access your assigned tasks and center
-           
           </Text>
         </View>
 
-        {/* Mobile Field */}
-        {/* Mobile Field */}
-        {/* Mobile Field */}
+        {/* Username Field */}
         <View style={{ position: "relative", marginBottom: 16 }}>
-        <MaterialIcons
-        className="z-10"
-              name="phone-iphone"
-              size={24}
-              color="#9CA3AF"
-              style={{ position: "absolute", left: 12, top: 12 }}
-            />
+          <MaterialIcons
+            className="z-10"
+            name="person"
+            size={24}
+            color="#9CA3AF"
+            style={{ position: "absolute", left: 12, top: 12 }}
+          />
           <TextInput
-            keyboardType="number-pad"
-            placeholder="Mobile Number"
+            placeholder="Username"
             placeholderTextColor="#9CA3AF"
-            value={mobile}
-            onChangeText={setMobile}
+            value={username}
+            onChangeText={setUsername}
             style={{
               borderWidth: 1,
               borderColor: "#D1D5DB",
@@ -73,14 +86,14 @@ export default function LoginScreen() {
         </View>
 
         {/* Password Field */}
-        <View className="mb-6">
-        <MaterialIcons
-        className="z-10"
-              name="lock"
-              size={24}
-              color="#9CA3AF"
-              style={{ position: "absolute", left: 12, top: 12 }}
-            />
+        <View className="mb-2" style={{ position: "relative" }}>
+          <MaterialIcons
+            className="z-10"
+            name="lock"
+            size={24}
+            color="#9CA3AF"
+            style={{ position: "absolute", left: 12, top: 12 }}
+          />
           <TextInput
             placeholder="Password"
             placeholderTextColor="#9CA3AF"
@@ -99,6 +112,11 @@ export default function LoginScreen() {
             }}
           />
         </View>
+
+        {/* Error Message */}
+        {error ? (
+          <Text className="text-red-600 text-sm mb-4">{error}</Text>
+        ) : null}
 
         {/* OTP & Forgot Password */}
         <View className="flex-row justify-between items-center mb-4">
@@ -133,7 +151,7 @@ export default function LoginScreen() {
 
         {/* Footer */}
         <Text className="text-center text-sm text-gray-500">
-          Dont have an account?{" "}
+          {"Don't have an account? "}
           <Text className="text-blue-600 font-medium">Contact Admin</Text>
         </Text>
       </View>

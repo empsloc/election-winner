@@ -1,12 +1,21 @@
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Fonts } from '@/constants/theme';
+import { useUsers } from '@/context/UserContext';
 import { Feather, MaterialIcons } from '@expo/vector-icons';
 import React from 'react';
 import { ScrollView, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function ProfileScreen() {
+  const { users } = useUsers();
+
+  // Assuming the first active user is the logged-in user
+  const currentUser = users.find(u => u.isActive) || {
+    name: 'John Doe',
+    email: 'johndoe@example.com',
+  };
+
   return (
     <SafeAreaView className="flex-1 bg-gray-100">
       {/* Header */}
@@ -16,10 +25,10 @@ export default function ProfileScreen() {
           className="text-white text-2xl font-bold mb-1"
           style={{ fontFamily: Fonts.rounded }}
         >
-          John Doe
+          {currentUser.name}
         </ThemedText>
         <ThemedText type="default" className="text-white opacity-80">
-          johndoe@example.com
+          {currentUser.email}
         </ThemedText>
       </ThemedView>
 
